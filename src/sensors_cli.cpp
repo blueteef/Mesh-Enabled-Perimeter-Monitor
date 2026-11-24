@@ -1,0 +1,171 @@
+// CLI commands + USB JSON telemetry stream for all sensor modules.
+#include <math.h>
+#include "cli.h"
+#include "config_store.h"
+#include "env.h"
+#include "events.h"
+#include "gps.h"
+#include "imu.h"
+#include "mag.h"
+#include "radar.h"
+#include "sensors.h"
+
+namespace sensors {
+
+static bool streaming = false;
+
+// ------------------------------------------------------------------ helpers
+static void jf(const char* key, float v, int dp = 2, bool comma = true) {
+    if (isnan(v)) cli::out->printf("\"%s\":null%s", key, comma ? "," : "");
+    else cli::out->printf("\"%s\":%.*f%s", key, dp, v, comma ? "," : "");
+}
+
+static void printStream() {
+    Stream* o = cli::out;
+    const auto& e = env::data();
+    const auto& i = imu::data();
+    const auto& m = mag::data();
+    const auto& g = gps::data();
+    o->printf("{\"t\":%lu,\"env\":{\"chip\":\"%s\",", millis(), env::chipName());
+    jf("temp", e.temp_c); jf("press", e.press_hpa); jf("hum", e.hum_pct, 1); jf("alt", e.alt_m, 1, false);
+    o->printf("},\"imu\":{\"ok\":%d,\"state\":\"%s\",", i.valid, imu::stateName(i.state));
+    jf("ax", i.ax, 3); jf("ay", i.ay, 3); jf("az", i.az, 3);
+    jf("gx", i.gx, 1); jf("gy", i.gy, 1); jf("gz", i.gz, 1);
+    jf("roll", i.roll, 1); jf("pitch", i.pitch, 1); jf("tilt", i.tilt_deg, 1); jf("motion", i.motion_mg, 0, false);
+    o->printf("},\"mag\":{\"ok\":%d,\"raw\":[%d,%d,%d],", m.valid, m.rx, m.ry, m.rz);
+    jf("heading", m.heading_deg, 1, false);
+    o->printf("},\"gps\":{\"fix\":%d,\"sats\":%u,\"lat\":%.6f,\"lon\":%.6f,", g.fix, g.sats, g.lat, g.lon);
+    jf("alt", g.alt_m, 1); jf("hdop", g.hdop, 1); jf("kmh", g.speed_kmh, 1);
+    o->printf("\"pps\":%lu},\"radar\":[", (unsigned long)g.pps_count);
+    for (uint8_t r = 0; r < radar::N; ++r) {
+        const auto& d = radar::data(r);
+        o->printf("%s{\"on\":%d,\"pres\":%d,\"st\":%u,\"mcm\":%u,\"me\":%u,\"scm\":%u,\"se\":%u}",
+                  r ? "," : "", d.online, d.present, d.state, d.move_cm, d.move_energy, d.static_cm, d.static_energy);
+    }
+    o->println("]}");
+}
+
+void tick() {
+    static uint32_t last = 0;
+    uint32_t hz = cfg::u32("sys.stream_hz");
+    if (!streaming || !hz) return;
+    if (millis() - last < 1000 / hz) return;
+    last = millis();
+    printStream();
+}
+
+// ------------------------------------------------------------------ commands
+static const char* cmdEnv(int, char**) {
+    const auto& e = env::data();
+    cli::out->printf("chip=%s addr=0x%02X valid=%d\n", env::chipName(), env::address(), e.valid);
+    cli::out->printf("temp=%.2fC press=%.2fhPa hum=%.1f%% alt=%.1fm\n", e.temp_c, e.press_hpa, e.hum_pct, e.alt_m);
+    return env::address() ? nullptr : "no BMP280/BME280 found (check wiring / SDO address)";
+}
+
+static const char* cmdImu(int, char**) {
+    if (!imu::present()) return "BMI323 not found (check CS tied to 3V3, SAO, wiring)";
+    const auto& d = imu::data();
+    cli::out->printf("addr=0x%02X chip_id=0x%04X samples=%lu temp=%.1fC\n", imu::address(), imu::chipId(), imu::sampleCount(), d.temp_c);
+    cli::out->printf("acc g   = %.3f %.3f %.3f\n", d.ax, d.ay, d.az);
+    cli::out->printf("gyr dps = %.1f %.1f %.1f\n", d.gx, d.gy, d.gz);
+    cli::out->printf("roll=%.1f pitch=%.1f tilt=%.1f motion=%.0fmg tamper=%s\n", d.roll, d.pitch, d.tilt_deg, d.motion_mg, imu::stateName(d.state));
+    return nullptr;
+}
+
+static const char* cmdMag(int, char**) {
+    if (!mag::present()) return "QMC5883L not found";
+    const auto& d = mag::data();
+    cli::out->printf("raw=%d %d %d  cal=%.0f %.0f %.0f  heading=%.1f%s\n", d.rx, d.ry, d.rz, d.x, d.y, d.z, d.heading_deg, d.overflow ? " OVERFLOW" : "");
+    return nullptr;
+}
+
+static const char* cmdMagCal(int argc, char** argv) {
+    if (argc < 2) return "usage: magcal start|stop  (rotate unit through all orientations between)";
+    if (!strcmp(argv[1], "start")) { mag::calStart(); cli::out->println("rotating... run 'magcal stop' after ~20 s"); return nullptr; }
+    if (!strcmp(argv[1], "stop")) {
+        if (!mag::calStop()) return "not enough rotation captured";
+        cli::out->println("offsets/scales updated in RAM; run 'save' to keep");
+        return nullptr;
+    }
+    return "usage: magcal start|stop";
+}
+
+static const char* cmdGps(int argc, char** argv) {
+    if (argc >= 2 && !strcmp(argv[1], "raw")) { gps::setRaw(argc > 2 && !strcmp(argv[2], "on")); return nullptr; }
+    if (argc >= 3 && !strcmp(argv[1], "cmd")) { gps::sendPmtk(argv[2]); return nullptr; }
+    const auto& g = gps::data();
+    cli::out->printf("fix=%d q=%u sats=%u hdop=%.1f pps=%lu\n", g.fix, g.quality, g.sats, g.hdop, (unsigned long)g.pps_count);
+    cli::out->printf("lat=%.6f lon=%.6f alt=%.1fm speed=%.1fkm/h\n", g.lat, g.lon, g.alt_m, g.speed_kmh);
+    cli::out->printf("utc=%04u-%02u-%02u %02u:%02u:%02u valid=%d\n", g.year, g.month, g.day, g.hour, g.minute, g.second, g.time_valid);
+    cli::out->printf("nmea_ok=%lu bad_checksum=%lu last=%lums ago\n", (unsigned long)g.sentences, (unsigned long)g.bad_checksum,
+                     g.last_sentence_ms ? millis() - g.last_sentence_ms : 0);
+    if (!g.sentences) return "no NMEA received (check GPS TX->GP1, power, baud)";
+    return nullptr;
+}
+
+static int idx(const char* s) { return (s[0] >= '0' && s[0] <= '2' && !s[1]) ? s[0] - '0' : (s[0] >= 'a' && s[0] <= 'c' && !s[1]) ? s[0] - 'a' : -1; }
+
+static const char* cmdRadar(int argc, char** argv) {
+    if (argc == 1) {
+        for (uint8_t r = 0; r < radar::N; ++r) {
+            const auto& d = radar::data(r);
+            cli::out->printf("%c online=%d present=%d state=%u move=%ucm/%u static=%ucm/%u frames=%lu bad=%lu det=%lu\n", 'A' + r, d.online, d.present,
+                             d.state, d.move_cm, d.move_energy, d.static_cm, d.static_energy, (unsigned long)d.frames, (unsigned long)d.bad_frames, (unsigned long)d.detections);
+        }
+        return nullptr;
+    }
+    const char* sub = argv[1];
+    if (!strcmp(sub, "apply")) {   // push parameters into each module's own flash
+        for (uint8_t r = 0; r < radar::N; ++r) {
+            bool ok = radar::setGates(r, cfg::u32("radar.max_move_gate"), cfg::u32("radar.max_static_gate"), cfg::u32("radar.nobody_s"))
+                   && radar::setSensitivity(r, 0xFFFF, cfg::u32("radar.sens_move"), cfg::u32("radar.sens_static"));
+            cli::out->printf("%c %s\n", 'A' + r, ok ? "applied" : "NO ACK");
+        }
+        return nullptr;
+    }
+    if (argc < 3) return "usage: radar [apply | ver|restart|factory|raw <a|b|c> | eng <a|b|c> on|off | raw off]";
+    if (!strcmp(sub, "raw") && !strcmp(argv[2], "off")) { radar::setRaw(-1); return nullptr; }
+    int r = idx(argv[2]);
+    if (r < 0) return "radar must be a, b or c";
+    if (!strcmp(sub, "raw")) { radar::setRaw(r); return nullptr; }
+    if (!strcmp(sub, "ver")) {
+        char v[32];
+        if (!radar::version(r, v, sizeof v)) return "no ACK from radar";
+        cli::out->println(v); return nullptr;
+    }
+    if (!strcmp(sub, "restart")) return radar::restart(r) ? nullptr : "no ACK";
+    if (!strcmp(sub, "factory")) return radar::factoryReset(r) ? nullptr : "no ACK";
+    if (!strcmp(sub, "eng") && argc >= 4) return radar::setEngineering(r, !strcmp(argv[3], "on")) ? nullptr : "no ACK";
+    return "bad subcommand";
+}
+
+static const char* cmdArm(int, char**) { imu::arm(); return nullptr; }
+static const char* cmdDisarm(int, char**) { imu::disarm(); return nullptr; }
+
+static const char* cmdEvents(int argc, char** argv) {
+    if (argc < 2) { cli::out->printf("events printing=%d total=%lu\n", events::printing(), (unsigned long)events::total()); return nullptr; }
+    events::setPrint(!strcmp(argv[1], "on"));
+    return nullptr;
+}
+
+static const char* cmdStream(int argc, char** argv) {
+    if (argc < 2) return "usage: stream on|off|once";
+    if (!strcmp(argv[1], "once")) { printStream(); return nullptr; }
+    streaming = !strcmp(argv[1], "on");
+    return nullptr;
+}
+
+void registerCli() {
+    cli::add("env",     "BMP280/BME280 reading", cmdEnv);
+    cli::add("imu",     "BMI323 reading + tamper state", cmdImu);
+    cli::add("mag",     "QMC5883L reading + heading", cmdMag);
+    cli::add("magcal",  "magcal start|stop  hard/soft-iron calibration", cmdMagCal);
+    cli::add("gps",     "gps | gps raw on|off | gps cmd <PMTK body>", cmdGps);
+    cli::add("radar",   "radar | apply | ver|restart|factory|raw <a-c> | eng <a-c> on|off", cmdRadar);
+    cli::add("arm",     "arm tamper detection at current pose", cmdArm);
+    cli::add("disarm",  "disarm tamper detection", cmdDisarm);
+    cli::add("events",  "events on|off  echo detection events", cmdEvents);
+    cli::add("stream",  "stream on|off|once  JSON telemetry (rate: sys.stream_hz)", cmdStream);
+}
+
+}  // namespace sensors
