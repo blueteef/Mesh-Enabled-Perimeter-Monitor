@@ -139,6 +139,30 @@ static const char* cmdRadar(int argc, char** argv) {
     return "bad subcommand";
 }
 
+// Wiring diagnostic. WARNING: changes pin mode; 'reboot' afterwards to restore.
+//   gpio read <n>          level (does not change mode)
+//   gpio edges <n> [ms]    reconfigure as input, count transitions
+//   gpio high|low <n>      drive the pin
+static const char* cmdGpio(int argc, char** argv) {
+    if (argc < 3) return "usage: gpio read|edges|high|low <n> [ms]";
+    int n = atoi(argv[2]);
+    if (n < 0 || n > 29) return "pin 0..29";
+    if (!strcmp(argv[1], "read")) { cli::out->printf("GP%d=%d\n", n, digitalRead(n)); return nullptr; }
+    if (!strcmp(argv[1], "high") || !strcmp(argv[1], "low")) {
+        pinMode(n, OUTPUT); digitalWrite(n, argv[1][0] == 'h'); cli::out->printf("GP%d driven %s\n", n, argv[1]); return nullptr;
+    }
+    if (!strcmp(argv[1], "edges")) {
+        uint32_t ms = argc > 3 ? atoi(argv[3]) : 1000;
+        pinMode(n, INPUT);
+        int last = digitalRead(n), edges = 0, hi = 0, samples = 0;
+        uint32_t t0 = millis();
+        while (millis() - t0 < ms) { int v = digitalRead(n); if (v != last) { ++edges; last = v; } hi += v; ++samples; }
+        cli::out->printf("GP%d edges=%d high=%d%% (no-pull input)\n", n, edges, samples ? hi * 100 / samples : 0);
+        return nullptr;
+    }
+    return "usage: gpio read|edges|high|low <n> [ms]";
+}
+
 static const char* cmdArm(int, char**) { imu::arm(); return nullptr; }
 static const char* cmdDisarm(int, char**) { imu::disarm(); return nullptr; }
 
@@ -162,6 +186,7 @@ void registerCli() {
     cli::add("magcal",  "magcal start|stop  hard/soft-iron calibration", cmdMagCal);
     cli::add("gps",     "gps | gps raw on|off | gps cmd <PMTK body>", cmdGps);
     cli::add("radar",   "radar | apply | ver|restart|factory|raw <a-c> | eng <a-c> on|off", cmdRadar);
+    cli::add("gpio",    "gpio read|edges|high|low <n>  wiring diagnostic (reboot after)", cmdGpio);
     cli::add("arm",     "arm tamper detection at current pose", cmdArm);
     cli::add("disarm",  "disarm tamper detection", cmdDisarm);
     cli::add("events",  "events on|off  echo detection events", cmdEvents);

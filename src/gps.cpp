@@ -17,7 +17,9 @@ void setRaw(bool on) { raw = on; }
 
 static void ppsIsr() { ++ppsCount; }
 
-void setPower(bool on) { digitalWrite(pins::GPS_EN, on ? HIGH : LOW); }
+// Adafruit Ultimate GPS EN is active-LOW-enabled: pulled low on the module = ON,
+// drive HIGH = power disabled. (Confirmed from the Adafruit datasheet.)
+void setPower(bool on) { digitalWrite(pins::GPS_EN, on ? LOW : HIGH); }
 
 void begin() {
     pinMode(pins::GPS_EN, OUTPUT);

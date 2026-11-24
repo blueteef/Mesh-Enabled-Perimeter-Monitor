@@ -16,7 +16,7 @@ namespace pins {
 constexpr uint8_t GPS_TX   = 0;   // MCU TX -> GPS RX
 constexpr uint8_t GPS_RX   = 1;   // MCU RX <- GPS TX
 constexpr uint8_t GPS_PPS  = 6;   // input, 1 Hz pulse (rising edge)
-constexpr uint8_t GPS_EN   = 7;   // output, HIGH = GPS on (power gating)
+constexpr uint8_t GPS_EN   = 7;   // output, LOW = GPS on, HIGH = GPS off (module EN is pulled low = enabled)
 
 // --- I2C1: BMI323, BMP280/BME280, QMC5883L ---------------------------------
 constexpr uint8_t I2C_SDA  = 2;
