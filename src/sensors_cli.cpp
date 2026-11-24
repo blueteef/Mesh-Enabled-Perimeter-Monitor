@@ -15,6 +15,15 @@ namespace sensors {
 static bool streaming = false;
 
 // ------------------------------------------------------------------ helpers
+// NaN-safe text formatting for the human CLI ("--" instead of "inf"/"nan").
+static const char* fmtf(float v, int dp = 1) {
+    static char b[4][16];
+    static uint8_t i = 0;
+    char* o = b[i++ & 3];
+    if (isnan(v) || isinf(v)) strcpy(o, "--"); else snprintf(o, 16, "%.*f", dp, v);
+    return o;
+}
+
 static void jf(const char* key, float v, int dp = 2, bool comma = true) {
     if (isnan(v)) cli::out->printf("\"%s\":null%s", key, comma ? "," : "");
     else cli::out->printf("\"%s\":%.*f%s", key, dp, v, comma ? "," : "");
@@ -39,8 +48,16 @@ static void printStream() {
     o->printf("\"pps\":%lu},\"radar\":[", (unsigned long)g.pps_count);
     for (uint8_t r = 0; r < radar::N; ++r) {
         const auto& d = radar::data(r);
-        o->printf("%s{\"on\":%d,\"pres\":%d,\"st\":%u,\"mcm\":%u,\"me\":%u,\"scm\":%u,\"se\":%u}",
-                  r ? "," : "", d.online, d.present, d.state, d.move_cm, d.move_energy, d.static_cm, d.static_energy);
+        o->printf("%s{\"on\":%d,\"pres\":%d,\"st\":%u,\"mcm\":%u,\"me\":%u,\"scm\":%u,\"se\":%u,\"eng\":%d",
+                  r ? "," : "", d.online, d.present, d.state, d.move_cm, d.move_energy, d.static_cm, d.static_energy, d.engineering);
+        if (d.engineering) {   // per-gate energies (0.75 m per gate), engineering mode only
+            o->print(",\"gm\":[");
+            for (int k = 0; k < 9; ++k) o->printf("%s%u", k ? "," : "", d.gate_move[k]);
+            o->print("],\"gs\":[");
+            for (int k = 0; k < 9; ++k) o->printf("%s%u", k ? "," : "", d.gate_static[k]);
+            o->print("]");
+        }
+        o->print("}");
     }
     o->println("]}");
 }
@@ -58,7 +75,7 @@ void tick() {
 static const char* cmdEnv(int, char**) {
     const auto& e = env::data();
     cli::out->printf("chip=%s addr=0x%02X valid=%d\n", env::chipName(), env::address(), e.valid);
-    cli::out->printf("temp=%.2fC press=%.2fhPa hum=%.1f%% alt=%.1fm\n", e.temp_c, e.press_hpa, e.hum_pct, e.alt_m);
+    cli::out->printf("temp=%sC press=%shPa hum=%s%% alt=%sm\n", fmtf(e.temp_c, 2), fmtf(e.press_hpa, 2), fmtf(e.hum_pct), fmtf(e.alt_m));
     return env::address() ? nullptr : "no BMP280/BME280 found (check wiring / SDO address)";
 }
 
@@ -75,7 +92,7 @@ static const char* cmdImu(int, char**) {
 static const char* cmdMag(int, char**) {
     if (!mag::present()) return "QMC5883L not found";
     const auto& d = mag::data();
-    cli::out->printf("raw=%d %d %d  cal=%.0f %.0f %.0f  heading=%.1f%s\n", d.rx, d.ry, d.rz, d.x, d.y, d.z, d.heading_deg, d.overflow ? " OVERFLOW" : "");
+    cli::out->printf("raw=%d %d %d  cal=%.0f %.0f %.0f  heading=%s%s\n", d.rx, d.ry, d.rz, d.x, d.y, d.z, fmtf(d.heading_deg), d.overflow ? " OVERFLOW" : "");
     return nullptr;
 }
 
@@ -94,8 +111,8 @@ static const char* cmdGps(int argc, char** argv) {
     if (argc >= 2 && !strcmp(argv[1], "raw")) { gps::setRaw(argc > 2 && !strcmp(argv[2], "on")); return nullptr; }
     if (argc >= 3 && !strcmp(argv[1], "cmd")) { gps::sendPmtk(argv[2]); return nullptr; }
     const auto& g = gps::data();
-    cli::out->printf("fix=%d q=%u sats=%u hdop=%.1f pps=%lu\n", g.fix, g.quality, g.sats, g.hdop, (unsigned long)g.pps_count);
-    cli::out->printf("lat=%.6f lon=%.6f alt=%.1fm speed=%.1fkm/h\n", g.lat, g.lon, g.alt_m, g.speed_kmh);
+    cli::out->printf("fix=%d q=%u sats=%u hdop=%s pps=%lu\n", g.fix, g.quality, g.sats, fmtf(g.hdop), (unsigned long)g.pps_count);
+    cli::out->printf("lat=%.6f lon=%.6f alt=%sm speed=%skm/h\n", g.lat, g.lon, fmtf(g.alt_m), fmtf(g.speed_kmh));
     cli::out->printf("utc=%04u-%02u-%02u %02u:%02u:%02u valid=%d\n", g.year, g.month, g.day, g.hour, g.minute, g.second, g.time_valid);
     cli::out->printf("nmea_ok=%lu bad_checksum=%lu last=%lums ago\n", (unsigned long)g.sentences, (unsigned long)g.bad_checksum,
                      g.last_sentence_ms ? millis() - g.last_sentence_ms : 0);

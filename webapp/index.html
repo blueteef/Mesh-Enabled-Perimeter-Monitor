@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perimeter Sensor Console</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>Perimeter Sensor</h1>
+  <span id="conn" class="chip">Disconnected</span>
+  <span id="fw" class="chip" hidden></span>
+  <span class="spacer"></span>
+  <button class="btn primary" id="btnConnect">Connect USB</button>
+  <button class="btn" id="btnDemo" title="Simulated node, no hardware needed">Demo</button>
+  <button class="btn" id="btnDisc" hidden>Disconnect</button>
+  <button class="btn" id="btnTheme" title="Toggle light/dark" aria-label="Toggle theme">◐</button>
+</header>
+<nav role="tablist">
+  <button class="tab" role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
+  <button class="tab" role="tab" data-tab="graphs" aria-selected="false">Graphs</button>
+  <button class="tab" role="tab" data-tab="params" aria-selected="false">Parameters</button>
+  <button class="tab" role="tab" data-tab="tools" aria-selected="false">Tools</button>
+  <button class="tab" role="tab" data-tab="console" aria-selected="false">Console</button>
+</nav>
+
+<main>
+  <div id="unsupported" class="banner" hidden>
+    This browser has no Web Serial support. Use Chrome or Edge (desktop) to connect over USB. The Demo button still works.
+  </div>
+
+  <!-- ============================ DASHBOARD ============================ -->
+  <section class="panel active" id="tab-dash">
+    <div id="tamperBanner" class="banner" hidden></div>
+    <div class="grid">
+      <div class="card wide">
+        <h2>Radar coverage <span class="muted small">(top-down, forward = up)</span></h2>
+        <canvas id="cvRadar" height="340" aria-label="Radar coverage map"></canvas>
+        <div class="legend" id="radarLegend"></div>
+      </div>
+      <div class="card">
+        <h2>Heading</h2>
+        <canvas id="cvCompass" height="190" aria-label="Compass"></canvas>
+        <p class="muted small" id="headingNote" style="text-align:center;margin:6px 0 0"></p>
+      </div>
+      <div class="card">
+        <h2>Orientation &amp; tamper</h2>
+        <canvas id="cvLevel" height="150" aria-label="Level"></canvas>
+        <dl class="kv" style="margin-top:10px">
+          <dt>State</dt><dd><span id="tState" class="state DISARMED">—</span></dd>
+          <dt>Roll / pitch</dt><dd id="tRP">—</dd>
+          <dt>Tilt from armed pose</dt><dd id="tTilt">—</dd>
+          <dt>Vibration</dt><dd id="tMotion">—</dd>
+        </dl>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btnArm">Arm now</button>
+          <button class="btn" id="btnDisarm">Disarm</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Environment <span class="muted small" id="envChip"></span></h2>
+        <dl class="kv">
+          <dt>Temperature</dt><dd id="eTemp" class="big">—</dd>
+          <dt>Pressure</dt><dd id="ePress">—</dd>
+          <dt>Humidity</dt><dd id="eHum">—</dd>
+          <dt>Altitude (pressure)</dt><dd id="eAlt">—</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h2>GPS</h2>
+        <dl class="kv">
+          <dt>Fix</dt><dd id="gFix">—</dd>
+          <dt>Satellites / HDOP</dt><dd id="gSats">—</dd>
+          <dt>Latitude</dt><dd id="gLat">—</dd>
+          <dt>Longitude</dt><dd id="gLon">—</dd>
+          <dt>Altitude / speed</dt><dd id="gAlt">—</dd>
+          <dt>PPS pulses</dt><dd id="gPps">—</dd>
+        </dl>
+      </div>
+      <div class="card wide">
+        <h2>Events <button class="btn small" id="btnClearEv" style="float:right;padding:1px 8px">Clear</button></h2>
+        <div class="log" id="evLog"><div class="muted">No events yet. Detections, tamper alarms and GPS changes appear here.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== GRAPHS ============================== -->
+  <section class="panel" id="tab-graphs">
+    <div class="row" style="margin-bottom:10px">
+      <label>Window <select id="winSel"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="180">3 min</option><option value="600">10 min</option></select></label>
+      <button class="btn" id="btnGClear">Clear graphs</button>
+      <span class="muted small">Hover a chart for exact values.</span>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>Radar target distance (cm)</h2><div class="legend" data-legend="radar"></div><canvas id="cvDist" height="200"></canvas></div>
+      <div class="card"><h2>Radar target energy (0–100)</h2><div class="legend" data-legend="radar"></div><canvas id="cvEnergy" height="200"></canvas></div>
+      <div class="card"><h2>Acceleration (g)</h2><div class="legend" data-legend="xyz"></div><canvas id="cvAcc" height="200"></canvas></div>
+      <div class="card"><h2>Tilt from armed pose (°)</h2><canvas id="cvTilt" height="200"></canvas></div>
+      <div class="card"><h2>Vibration envelope (mg)</h2><canvas id="cvVib" height="200"></canvas></div>
+      <div class="card"><h2>Temperature (°C)</h2><canvas id="cvTemp" height="200"></canvas></div>
+      <div class="card"><h2>Pressure (hPa)</h2><canvas id="cvPress" height="200"></canvas></div>
+      <div class="card"><h2>Heading (°)</h2><canvas id="cvHead" height="200"></canvas></div>
+      <div class="card wide"><h2>Radar per-gate energy <span class="muted small">(engineering mode, 0.75 m per gate)</span></h2><div class="legend" data-legend="radar"></div><canvas id="cvGates" height="220"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============================ PARAMETERS ============================ -->
+  <section class="panel" id="tab-params">
+    <div class="toolbar">
+      <input type="search" id="pFilter" placeholder="Filter parameters…" aria-label="Filter parameters">
+      <button class="btn primary" id="pApply" disabled>Apply changes</button>
+      <button class="btn" id="pSave" title="Write current values to the node's flash">Save to flash</button>
+      <button class="btn" id="pReload">Reload from node</button>
+      <button class="btn" id="pExport">Export…</button>
+      <button class="btn" id="pImport">Import…</button>
+      <input type="file" id="pFile" accept="application/json" hidden>
+      <span class="muted small" id="pStatus"></span>
+    </div>
+    <div id="pList"><p class="muted">Connect to a node (or use Demo) to load its parameters.</p></div>
+  </section>
+
+  <!-- =============================== TOOLS ============================== -->
+  <section class="panel" id="tab-tools">
+    <div class="grid">
+      <div class="card">
+        <h2>Compass calibration</h2>
+        <p class="muted small">Start, then slowly rotate the whole unit through every orientation (a figure-8 plus tipping it on each side) for about 20 seconds, then stop.</p>
+        <div class="row"><button class="btn primary" id="calStart">Start</button><button class="btn" id="calStop">Stop &amp; compute</button><span id="calMsg" class="muted small"></span></div>
+        <p class="muted small">Afterwards use <b>Parameters → Save to flash</b> to keep the result.</p>
+      </div>
+      <div class="card">
+        <h2>Radar modules</h2>
+        <p class="muted small">Pushes the <code>radar.*</code> gate and sensitivity parameters into each LD2410's own memory.</p>
+        <div class="row"><button class="btn primary" id="radApply">Apply radar parameters</button></div>
+        <div class="row" style="margin-top:10px" id="radRows"></div>
+        <pre id="radOut" class="mono muted small"></pre>
+      </div>
+      <div class="card">
+        <h2>Bus &amp; diagnostics</h2>
+        <div class="row"><button class="btn" id="i2cBtn">Scan I²C</button><button class="btn" id="statBtn">Status</button><button class="btn" id="gpsRawBtn">GPS raw NMEA (5 s)</button></div>
+        <pre id="diagOut" class="mono muted small"></pre>
+      </div>
+      <div class="card">
+        <h2>Device</h2>
+        <div class="row"><button class="btn" id="btnReboot">Reboot</button><button class="btn danger" id="btnBoot" title="Reboot into the UF2 bootloader for firmware updates">Firmware update mode</button></div>
+        <p class="muted small">Firmware update mode makes the node appear as a USB drive named <b>RPI-RP2</b>. Copy <code>firmware.uf2</code> onto it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== CONSOLE ============================= -->
+  <section class="panel" id="tab-console">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <label><input type="checkbox" id="cShowTel"> show telemetry lines</label>
+        <button class="btn" id="cClear">Clear</button>
+        <button class="btn" id="cStream">Stream: on</button>
+      </div>
+      <div class="log term" id="term" aria-live="off"></div>
+      <form class="cmdline" id="cmdForm"><input id="cmdIn" autocomplete="off" spellcheck="false" placeholder="type a command, e.g. help, list tamper, set tamper.tilt_deg 20" aria-label="Command"><button class="btn primary">Send</button></form>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
