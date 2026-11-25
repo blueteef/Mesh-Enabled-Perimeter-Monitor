@@ -1,6 +1,7 @@
 #include "mag.h"
 #include <math.h>
 #include "config_store.h"
+#include "axes.h"
 #include "i2c_bus.h"
 #include "imu.h"
 
@@ -77,12 +78,23 @@ void update() {
     gData.z = (v[2] - cfg::f32("mag.off_z")) * cfg::f32("mag.scale_z");
     gData.valid = true;
 
+    // Remap the calibrated chip axes to forward / right / down (a field vector, so down = -up)
+    static char lastSpec[20] = ""; static axes::Map map;
+    const char* spec = cfg::str("mag.map");
+    if (strcmp(spec, lastSpec)) {
+        strncpy(lastSpec, spec, sizeof lastSpec - 1);
+        if (!axes::parse(spec, map)) axes::parse("x,-y,z", map);
+    }
+    float cv[3] = {gData.x, gData.y, gData.z}, bv[3];
+    map.apply(cv, bv);
+    bv[2] = -bv[2];   // up -> down
+
     // Tilt-compensated heading (NXP AN4248). Needs a valid IMU attitude.
     if (imu::present() && imu::data().valid) {
         float phi = imu::data().roll * 0.0174533f, th = imu::data().pitch * 0.0174533f;
-        float bfx = gData.x * cosf(th) + gData.y * sinf(th) * sinf(phi) + gData.z * sinf(th) * cosf(phi);
-        float bfy = gData.y * cosf(phi) - gData.z * sinf(phi);
-        float h = atan2f(bfy, bfx) * 57.29578f + cfg::f32("mag.declination_deg");
+        float bfx = bv[0] * cosf(th) + bv[1] * sinf(th) * sinf(phi) + bv[2] * sinf(th) * cosf(phi);
+        float bfy = bv[1] * cosf(phi) - bv[2] * sinf(phi);
+        float h = atan2f(-bfy, bfx) * 57.29578f + cfg::f32("mag.declination_deg");
         while (h < 0) h += 360.0f;
         while (h >= 360.0f) h -= 360.0f;
         gData.heading_deg = h;

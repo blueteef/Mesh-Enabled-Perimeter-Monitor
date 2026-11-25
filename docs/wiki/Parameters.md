@@ -3,7 +3,7 @@
 > **Generated file** - do not edit by hand. Run `python tools/gen_param_docs.py` after changing
 > the table in `src/config_store.cpp`.
 
-48 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
+50 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
 web app, and persist across power cycles once you `save`. Parameters marked **reboot** take
 effect only after `save` then `reboot`.
 
@@ -53,6 +53,7 @@ effect only after `save` then `reboot`.
 | `imu.acc_range` | u32 | `1` | 0 to 3 | yes | Accel range: 0=2g 1=4g 2=8g 3=16g |
 | `imu.gyr_range` | u32 | `2` | 0 to 4 | yes | Gyro range: 0=125 1=250 2=500 3=1000 4=2000 dps |
 | `imu.poll_hz` | u32 | `100` | 1 to 400 |  | Firmware IMU read rate |
+| `imu.map` | str | `y,x,z` | up to 15 chars |  | Chip axes pointing forward,right,up (e.g. y,x,z or x,-y,z) |
 | `imu.lpf` | f32 | `0.05` | 0.001 to 1 |  | Gravity low-pass coefficient (smaller = smoother) |
 
 ## Tamper detection
@@ -74,6 +75,7 @@ effect only after `save` then `reboot`.
 |---|---|---|---|---|---|
 | `mag.enable` | bool | `1` | - | yes | Enable QMC5883L |
 | `mag.poll_hz` | u32 | `20` | 1 to 50 |  | Mag read rate |
+| `mag.map` | str | `x,-y,z` | up to 15 chars |  | Compass chip axes pointing forward,right,up (same format as imu.map) |
 | `mag.declination_deg` | f32 | `0` | -30 to 30 |  | Magnetic declination (east positive) |
 | `mag.sx` | i32 | `1` | -1 to 1 |  | Axis sign flip X (mounting) |
 | `mag.sy` | i32 | `1` | -1 to 1 |  | Axis sign flip Y (mounting) |

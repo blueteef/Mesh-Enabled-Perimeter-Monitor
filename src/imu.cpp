@@ -2,6 +2,7 @@
 #include <initializer_list>
 #include <math.h>
 #include "config_store.h"
+#include "axes.h"
 #include "events.h"
 #include "i2c_bus.h"
 
@@ -126,16 +127,28 @@ void update() {
 
     uint16_t w[7];
     if (!readWords(REG_ACC_X, w, 7)) { gData.valid = false; return; }
-    float ax = (int16_t)w[0] / accLsb, ay = (int16_t)w[1] / accLsb, az = (int16_t)w[2] / accLsb;
+    // Remap chip axes to the unit frame: x = forward, y = right, z = up (accel reads +1 g up when flat)
+    static char lastSpec[20] = ""; static axes::Map map;
+    const char* spec = cfg::str("imu.map");
+    if (strcmp(spec, lastSpec)) {
+        strncpy(lastSpec, spec, sizeof lastSpec - 1);
+        if (!axes::parse(spec, map)) axes::parse("y,x,z", map);
+    }
+    float ca[3] = {(int16_t)w[0] / accLsb, (int16_t)w[1] / accLsb, (int16_t)w[2] / accLsb}, a3[3];
+    float cg[3] = {(int16_t)w[3] / gyrLsb, (int16_t)w[4] / gyrLsb, (int16_t)w[5] / gyrLsb}, g3[3];
+    map.apply(ca, a3); map.apply(cg, g3);
+    float ax = a3[0], ay = a3[1], az = a3[2];
     gData.ax = ax; gData.ay = ay; gData.az = az;
-    gData.gx = (int16_t)w[3] / gyrLsb; gData.gy = (int16_t)w[4] / gyrLsb; gData.gz = (int16_t)w[5] / gyrLsb;
+    gData.gx = g3[0]; gData.gy = g3[1]; gData.gz = g3[2];
     gData.temp_c = 23.0f + (int16_t)w[6] / 512.0f;
     gData.valid = true;
     ++gSamples;
 
-    if (!filtInit) { fx = sx = ax; fy = sy = ay; fz = sz = az; filtInit = true; }
+    // Gravity vector in forward/right/down terms (what the roll/pitch formulas expect)
+    float gxv = -ax, gyv = -ay, gzv = az;
+    if (!filtInit) { fx = gxv; fy = gyv; fz = gzv; sx = ax; sy = ay; sz = az; filtInit = true; }
     float a = cfg::f32("imu.lpf");
-    fx += a * (ax - fx); fy += a * (ay - fy); fz += a * (az - fz);
+    fx += a * (gxv - fx); fy += a * (gyv - fy); fz += a * (gzv - fz);
     sx += 0.005f * (ax - sx); sy += 0.005f * (ay - sy); sz += 0.005f * (az - sz);
 
     gData.roll = atan2f(fy, fz) * 57.29578f;

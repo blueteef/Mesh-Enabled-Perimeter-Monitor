@@ -25,6 +25,7 @@ static const Param kParams[] = {
     {"imu.acc_range",        PType::U32, "1",         0,    3,    true,  "Accel range: 0=2g 1=4g 2=8g 3=16g"},
     {"imu.gyr_range",        PType::U32, "2",         0,    4,    true,  "Gyro range: 0=125 1=250 2=500 3=1000 4=2000 dps"},
     {"imu.poll_hz",          PType::U32, "100",       1,  400,    false, "Firmware IMU read rate"},
+    {"imu.map",              PType::STR, "y,x,z",     0,   15,    false, "Chip axes pointing forward,right,up (e.g. y,x,z or x,-y,z)"},
     {"imu.lpf",              PType::F32, "0.05",   0.001,    1,   false, "Gravity low-pass coefficient (smaller = smoother)"},
 
     {"tamper.enable",        PType::BOOL,"1",         0,    1,    false, "Tilt/motion tamper detection"},
@@ -38,6 +39,7 @@ static const Param kParams[] = {
 
     {"mag.enable",           PType::BOOL,"1",         0,    1,    true,  "Enable QMC5883L"},
     {"mag.poll_hz",          PType::U32, "20",        1,   50,    false, "Mag read rate"},
+    {"mag.map",              PType::STR, "x,-y,z",    0,   15,    false, "Compass chip axes pointing forward,right,up (same format as imu.map)"},
     {"mag.declination_deg",  PType::F32, "0",       -30,   30,    false, "Magnetic declination (east positive)"},
     {"mag.sx",               PType::I32, "1",        -1,    1,    false, "Axis sign flip X (mounting)"},
     {"mag.sy",               PType::I32, "1",        -1,    1,    false, "Axis sign flip Y (mounting)"},
