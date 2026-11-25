@@ -55,6 +55,8 @@ static const Param kParams[] = {
     {"radar.baud",           PType::U32, "256000", 9600, 460800,  true,  "UART baud to LD2410 modules (factory 256000)"},
     {"radar.enable_mask",    PType::U32, "7",         0,    7,    false, "Bitmask of radars that raise detections (A=1 B=2 C=4)"},
     {"radar.min_energy",     PType::U32, "30",        0,  100,    false, "Minimum target energy to count as detection"},
+    {"radar.min_ft",         PType::F32, "3",         0,   20,    false, "Ignore targets closer than this (feet): hides near-field clutter"},
+    {"radar.use_static",     PType::BOOL,"1",         0,    1,    false, "Count stationary targets (0 = moving targets only: ignores walls and furniture)"},
     {"radar.max_ft",         PType::F32, "20",        1,   20,    false, "Ignore targets farther than this (feet)"},
     {"radar.hold_ms",        PType::U32, "2000",      0, 60000,   false, "Keep 'present' this long after last hit"},
     {"radar.max_move_gate",  PType::U32, "8",         1,    8,    false, "Module max moving gate, 0.75 m each ('radar apply')"},

@@ -61,11 +61,13 @@ static void onDataFrame(uint8_t i, const uint8_t* p, size_t len) {
     bool enabled = cfg::u32("radar.enable_mask") & (1u << i);
     uint8_t minE = cfg::u32("radar.min_energy");
     uint16_t maxCm = (uint16_t)(cfg::f32("radar.max_ft") * 30.48f);
+    uint16_t minCm = (uint16_t)(cfg::f32("radar.min_ft") * 30.48f);
+    bool useStatic = cfg::boolean("radar.use_static");
     bool hit = false;
     uint16_t dist = 0; uint8_t en = 0;
     if (enabled && s.d.state) {
-        if ((s.d.state & 1) && s.d.move_energy >= minE && s.d.move_cm <= maxCm) { hit = true; dist = s.d.move_cm; en = s.d.move_energy; }
-        if ((s.d.state & 2) && s.d.static_energy >= minE && s.d.static_cm <= maxCm && s.d.static_energy > en) { hit = true; dist = s.d.static_cm; en = s.d.static_energy; }
+        if ((s.d.state & 1) && s.d.move_energy >= minE && s.d.move_cm <= maxCm && s.d.move_cm >= minCm) { hit = true; dist = s.d.move_cm; en = s.d.move_energy; }
+        if (useStatic && (s.d.state & 2) && s.d.static_energy >= minE && s.d.static_cm <= maxCm && s.d.static_cm >= minCm && s.d.static_energy > en) { hit = true; dist = s.d.static_cm; en = s.d.static_energy; }
     }
     if (hit) {
         s.lastPositive = now;

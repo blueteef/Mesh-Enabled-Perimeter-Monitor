@@ -3,7 +3,7 @@
 > **Generated file** - do not edit by hand. Run `python tools/gen_param_docs.py` after changing
 > the table in `src/config_store.cpp`.
 
-51 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
+53 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
 web app, and persist across power cycles once you `save`. Parameters marked **reboot** take
 effect only after `save` then `reboot`.
 
@@ -95,6 +95,8 @@ effect only after `save` then `reboot`.
 | `radar.baud` | u32 | `256000` | 9600 to 460800 | yes | UART baud to LD2410 modules (factory 256000) |
 | `radar.enable_mask` | u32 | `7` | 0 to 7 |  | Bitmask of radars that raise detections (A=1 B=2 C=4) |
 | `radar.min_energy` | u32 | `30` | 0 to 100 |  | Minimum target energy to count as detection |
+| `radar.min_ft` | f32 | `3` | 0 to 20 |  | Ignore targets closer than this (feet): hides near-field clutter |
+| `radar.use_static` | bool | `1` | - |  | Count stationary targets (0 = moving targets only: ignores walls and furniture) |
 | `radar.max_ft` | f32 | `20` | 1 to 20 |  | Ignore targets farther than this (feet) |
 | `radar.hold_ms` | u32 | `2000` | 0 to 60000 |  | Keep 'present' this long after last hit |
 | `radar.max_move_gate` | u32 | `8` | 1 to 8 |  | Module max moving gate, 0.75 m each ('radar apply') |
