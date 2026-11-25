@@ -10,7 +10,7 @@ There is no server, no account and no internet requirement; it is plain HTML/JS 
 
 ```
 cd webapp
-python -m http.server 8000
+python serve.py 8000
 ```
 then open <http://localhost:8000>.
 

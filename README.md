@@ -38,7 +38,7 @@ See [Status & roadmap](docs/wiki/Status-and-Roadmap.md) for exactly what is veri
 
 1. Install [PlatformIO](https://platformio.org) and run `pio run` in this folder, or grab `firmware.uf2` from a build.
 2. Hold **BOOT** on the RP2040-Zero while plugging in USB; copy `firmware.uf2` to the `RPI-RP2` drive.
-3. Open the web app (Chrome or Edge): `cd webapp && python -m http.server 8000`, browse to
+3. Open the web app (Chrome or Edge): `cd webapp && python serve.py 8000`, browse to
    `http://localhost:8000`, click **Connect USB**. No hardware yet? Open `http://localhost:8000/?demo`.
 4. Or use any serial terminal at 115200 baud and type `help`.
 
