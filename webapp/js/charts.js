@@ -110,7 +110,7 @@ export class RadarView {
     const cv = setupCanvas(this.c); if (!cv) return;
     const { g, w, h } = cv;
     g.clearRect(0, 0, w, h);
-    const cx = w / 2, cy = h / 2, maxCm = 600, R = Math.min(w, h) / 2 - 22, k = R / maxCm;
+    const cx = w / 2, cy = h / 2, maxCm = 640, R = Math.min(w, h) / 2 - 22, k = R / maxCm;
     const SECT = ['--s1', '--s2', '--s3'], names = ['A', 'B', 'C'];
     const ang = (deg) => ((deg - 90) * Math.PI) / 180;       // 0 deg = up
 
@@ -124,9 +124,10 @@ export class RadarView {
     });
     // range rings
     g.strokeStyle = css('--grid'); g.fillStyle = css('--muted'); g.font = '11px system-ui'; g.lineWidth = 1; g.textAlign = 'left';
-    for (let m = 1.5; m <= 6; m += 1.5) {
-      g.beginPath(); g.arc(cx, cy, m * 100 * k, 0, 7); g.stroke();
-      g.fillText(`${m} m`, cx + 4, cy - m * 100 * k + 12);
+    for (let ft = 5; ft <= 20; ft += 5) {
+      const rr = ft * 30.48 * k;
+      g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.stroke();
+      g.fillText(`${ft} ft`, cx + 4, cy - rr + 12);
     }
     // targets
     this.state.radar.forEach((r, i) => {
@@ -193,7 +194,7 @@ export class Level {
   }
 }
 
-// Per-gate energy bars (engineering mode). 9 gates x 0.75 m.
+// Per-gate energy bars (engineering mode). 9 gates x 2.5 ft.
 export class GateBars {
   constructor(canvas) { this.c = canvas; this.r = []; }
   set(radar) { this.r = radar; this.draw(); }

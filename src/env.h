@@ -10,7 +10,7 @@ struct Data {
     float temp_c = NAN;
     float press_hpa = NAN;
     float hum_pct = NAN;      // NAN on BMP280
-    float alt_m = NAN;        // from pressure + env.sealevel_hpa
+    float alt_m = NAN;        // from pressure + env.sealevel_inhg
 };
 
 void begin();

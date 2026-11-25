@@ -47,7 +47,7 @@ turns orange while there are unsaved settings. Radar presence is dropped if the 
 holds a stale detection.
 
 ## 9. Radar tuning happens in two places
-- **In the node** (`radar.min_energy`, `radar.max_cm`, `radar.hold_ms`): decides what counts as a detection. Changes apply instantly.
+- **In the node** (`radar.min_energy`, `radar.max_ft`, `radar.hold_ms`): decides what counts as a detection. Changes apply instantly.
 - **In each LD2410 module** (`radar.max_move_gate`, `radar.sens_*`, ...): the module's own thresholds. Pushed with `radar apply`
   and stored in the module.
 

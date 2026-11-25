@@ -33,7 +33,7 @@ static const char* cmdStatus(int, char**) {
     out->printf("node=%s\n", cfg::str("node.name"));
     out->printf("cfg_dirty=%d\n", cfg::dirty());
     out->printf("free_heap=%u\n", rp2040.getFreeHeap());
-    out->printf("cpu_mhz=%lu temp_c=%.1f\n", (unsigned long)(rp2040.f_cpu() / 1000000), analogReadTemp());
+    out->printf("cpu_mhz=%lu temp_f=%.1f\n", (unsigned long)(rp2040.f_cpu() / 1000000), analogReadTemp() * 1.8f + 32);
     return nullptr;
 }
 

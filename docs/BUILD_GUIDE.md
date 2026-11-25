@@ -173,7 +173,7 @@ Wave a hand in front of it and watch `present=1` and the distances change.
 2. **Tamper:** place the node where it will live, then `arm`. Gently tilt it: after the tilt limit (default 15 degrees, held
    half a second) you should see `ALARM` with `imu`. Tune with `tamper.*` settings.
 3. **Radars:** watch `radar` or the web app while someone walks around. Raise `radar.min_energy` if you get false hits; lower
-   `radar.max_cm` to ignore distant movement. To change the sensitivity *inside* each radar module, set `radar.sens_move` /
+   `radar.max_ft` to ignore distant movement. To change the sensitivity *inside* each radar module, set `radar.sens_move` /
    `radar.sens_static`, then run `radar apply`.
 4. **Keep your settings:** `save`. While there are unsaved changes the status LED is orange.
 

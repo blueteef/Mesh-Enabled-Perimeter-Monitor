@@ -107,11 +107,11 @@ void update() {
     if (!i2c::read(gAddr, REG_DATA, b, gChip == 0x60 ? 8 : 6)) { gData.valid = false; return; }
     int32_t adcP = ((int32_t)b[0] << 12) | ((int32_t)b[1] << 4) | (b[2] >> 4);
     int32_t adcT = ((int32_t)b[3] << 12) | ((int32_t)b[4] << 4) | (b[5] >> 4);
-    gData.temp_c = compT(adcT) + cfg::f32("env.temp_offset_c");
+    gData.temp_c = compT(adcT) + cfg::f32("env.temp_offset_f") / 1.8f;
     float pa = compP(adcP);
     gData.press_hpa = pa / 100.0f;
     gData.hum_pct = (gChip == 0x60) ? compH(((int32_t)b[6] << 8) | b[7]) : NAN;
-    float sl = cfg::f32("env.sealevel_hpa");
+    float sl = cfg::f32("env.sealevel_inhg") * 33.8639f;
     gData.alt_m = 44330.0f * (1.0f - powf(gData.press_hpa / sl, 0.1903f));
     gData.valid = !isnan(pa);
 }

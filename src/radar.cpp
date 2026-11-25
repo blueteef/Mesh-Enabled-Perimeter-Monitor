@@ -60,7 +60,7 @@ static void onDataFrame(uint8_t i, const uint8_t* p, size_t len) {
     uint32_t now = millis();
     bool enabled = cfg::u32("radar.enable_mask") & (1u << i);
     uint8_t minE = cfg::u32("radar.min_energy");
-    uint16_t maxCm = cfg::u32("radar.max_cm");
+    uint16_t maxCm = (uint16_t)(cfg::f32("radar.max_ft") * 30.48f);
     bool hit = false;
     uint16_t dist = 0; uint8_t en = 0;
     if (enabled && s.d.state) {

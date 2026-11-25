@@ -40,13 +40,13 @@ const radarView = new RadarView($('cvRadar')), compass = new Compass($('cvCompas
 const S = ['--s1', '--s2', '--s3'];
 const radarSeries = (p) => ['A', 'B', 'C'].map((n, i) => ({ key: p + i, label: 'Radar ' + n, color: S[i] }));
 const charts = {
-  dist: new LineChart($('cvDist'), radarSeries('d'), { unit: ' cm', digits: 0, min: 0 }),
+  dist: new LineChart($('cvDist'), radarSeries('d'), { unit: ' ft', digits: 1, min: 0 }),
   energy: new LineChart($('cvEnergy'), radarSeries('e'), { digits: 0, min: 0, max: 100 }),
   acc: new LineChart($('cvAcc'), [{ key: 'ax', label: 'X', color: S[0] }, { key: 'ay', label: 'Y', color: S[1] }, { key: 'az', label: 'Z', color: S[2] }], { unit: ' g', digits: 3 }),
   tilt: new LineChart($('cvTilt'), [{ key: 'tilt', label: 'Tilt', color: S[0] }], { unit: '°', digits: 1, min: 0 }),
   vib: new LineChart($('cvVib'), [{ key: 'motion', label: 'Vibration', color: S[1] }], { unit: ' mg', digits: 0, min: 0 }),
-  temp: new LineChart($('cvTemp'), [{ key: 'temp', label: 'Temp', color: S[0] }], { unit: ' °C', digits: 2 }),
-  press: new LineChart($('cvPress'), [{ key: 'press', label: 'Pressure', color: S[0] }], { unit: ' hPa', digits: 2 }),
+  temp: new LineChart($('cvTemp'), [{ key: 'temp', label: 'Temp', color: S[0] }], { unit: ' °F', digits: 1 }),
+  press: new LineChart($('cvPress'), [{ key: 'press', label: 'Pressure', color: S[0] }], { unit: ' inHg', digits: 3 }),
   head: new LineChart($('cvHead'), [{ key: 'heading', label: 'Heading', color: S[0] }], { unit: '°', digits: 0, min: 0, max: 360 }),
 };
 const legends = { radar: [['Radar A', S[0]], ['Radar B', S[1]], ['Radar C', S[2]]], xyz: [['X', S[0]], ['Y', S[1]], ['Z', S[2]]] };
@@ -65,28 +65,28 @@ function onTelemetry(f) {
   last = f;
   const { env, imu, mag, gps, radar } = f;
   const vals = {
-    temp: env.temp, press: env.press, heading: mag.heading,
+    temp: env.temp == null ? null : env.temp * 1.8 + 32, press: env.press == null ? null : env.press * 0.02953, heading: mag.heading,
     ax: imu.ok ? imu.ax : null, ay: imu.ok ? imu.ay : null, az: imu.ok ? imu.az : null,
     tilt: imu.ok ? imu.tilt : null, motion: imu.ok ? imu.motion : null,
   };
   radar.forEach((r, i) => {
-    vals['d' + i] = r.on && r.pres ? Math.max(r.mcm, r.scm) : null;
+    vals['d' + i] = r.on && r.pres ? Math.max(r.mcm, r.scm) / 30.48 : null;
     vals['e' + i] = r.on && r.pres ? Math.max(r.me, r.se) : null;
   });
   for (const c of Object.values(charts)) c.push(f.t, vals);
 
   // cards
-  $('eTemp').textContent = fmt(env.temp, 1, ' °C');
-  $('ePress').textContent = fmt(env.press, 1, ' hPa');
+  $('eTemp').textContent = fmt(env.temp == null ? null : env.temp * 1.8 + 32, 1, ' °F');
+  $('ePress').textContent = fmt(env.press == null ? null : env.press * 0.02953, 2, ' inHg');
   $('eHum').textContent = env.hum == null ? (env.chip === 'BMP280' ? 'n/a (BMP280)' : '—') : fmt(env.hum, 0, ' %');
-  $('eAlt').textContent = fmt(env.alt, 0, ' m');
+  $('eAlt').textContent = fmt(env.alt == null ? null : env.alt * 3.28084, 0, ' ft');
   $('envChip').textContent = env.chip === 'none' ? '(sensor not found)' : env.chip;
 
   $('gFix').innerHTML = gps.fix ? '<span class="chip ok">Fix</span>' : '<span class="chip warn">No fix</span>';
   $('gSats').textContent = `${gps.sats} / ${fmt(gps.hdop, 1)}`;
   $('gLat').textContent = gps.fix ? gps.lat.toFixed(6) : '—';
   $('gLon').textContent = gps.fix ? gps.lon.toFixed(6) : '—';
-  $('gAlt').textContent = gps.fix ? `${fmt(gps.alt, 0, ' m')} / ${fmt(gps.kmh, 1, ' km/h')}` : '—';
+  $('gAlt').textContent = gps.fix ? `${fmt(gps.alt * 3.28084, 0, ' ft')} / ${fmt(gps.kmh * 0.621371, 1, ' mph')}` : '—';
   $('gPps').textContent = gps.pps;
 
   const st = $('tState'); st.textContent = imu.ok ? imu.state : 'no IMU'; st.className = 'state ' + (imu.ok ? imu.state : 'DISARMED');
@@ -113,7 +113,7 @@ function onTelemetry(f) {
 
 // ------------------------------------------------------------------ events
 const EV = {
-  RADAR_PRESENCE: (e) => `Radar ${'ABC'[e.a]}: presence at ${e.v} cm (energy ${e.w})`,
+  RADAR_PRESENCE: (e) => `Radar ${'ABC'[e.a]}: presence at ${(e.v / 30.48).toFixed(1)} ft (energy ${e.w})`,
   RADAR_CLEAR: (e) => `Radar ${'ABC'[e.a]}: clear`,
   TAMPER_TILT: (e) => `TAMPER: tilted ${(e.v / 10).toFixed(1)}° from armed pose`,
   TAMPER_MOTION: (e) => `TAMPER: shaken / moved (${e.v} mg)`,

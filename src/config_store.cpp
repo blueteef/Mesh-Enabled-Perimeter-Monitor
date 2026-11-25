@@ -17,8 +17,8 @@ static const Param kParams[] = {
     {"gps.enable",           PType::BOOL,"1",         0,    1,    true,  "GPS powered via EN pin at boot"},
 
     {"env.poll_ms",          PType::U32, "1000",     100, 60000,  false, "BMP280/BME280 read interval"},
-    {"env.sealevel_hpa",     PType::F32, "1013.25",  900, 1100,   false, "Sea-level pressure for altitude calc"},
-    {"env.temp_offset_c",    PType::F32, "0",        -20,   20,   false, "Temperature calibration offset"},
+    {"env.sealevel_inhg",    PType::F32, "29.92",     26.5, 32.5, false, "Sea-level pressure (inHg) for altitude calc"},
+    {"env.temp_offset_f",    PType::F32, "0",        -36,   36,   false, "Temperature calibration offset (degF)"},
 
     {"imu.enable",           PType::BOOL,"1",         0,    1,    true,  "Enable BMI323"},
     {"imu.odr",              PType::U32, "8",         1,   12,    true,  "BMI323 ODR code (8 = 100 Hz, 9 = 200 Hz; VERIFY on bench)"},
@@ -52,7 +52,7 @@ static const Param kParams[] = {
     {"radar.baud",           PType::U32, "256000", 9600, 460800,  true,  "UART baud to LD2410 modules (factory 256000)"},
     {"radar.enable_mask",    PType::U32, "7",         0,    7,    false, "Bitmask of radars that raise detections (A=1 B=2 C=4)"},
     {"radar.min_energy",     PType::U32, "30",        0,  100,    false, "Minimum target energy to count as detection"},
-    {"radar.max_cm",         PType::U32, "600",      30,  600,    false, "Ignore targets farther than this"},
+    {"radar.max_ft",         PType::F32, "20",        1,   20,    false, "Ignore targets farther than this (feet)"},
     {"radar.hold_ms",        PType::U32, "2000",      0, 60000,   false, "Keep 'present' this long after last hit"},
     {"radar.max_move_gate",  PType::U32, "8",         1,    8,    false, "Module max moving gate, 0.75 m each ('radar apply')"},
     {"radar.max_static_gate",PType::U32, "8",         1,    8,    false, "Module max stationary gate ('radar apply')"},

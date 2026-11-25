@@ -75,14 +75,14 @@ void tick() {
 static const char* cmdEnv(int, char**) {
     const auto& e = env::data();
     cli::out->printf("chip=%s addr=0x%02X valid=%d\n", env::chipName(), env::address(), e.valid);
-    cli::out->printf("temp=%sC press=%shPa hum=%s%% alt=%sm\n", fmtf(e.temp_c, 2), fmtf(e.press_hpa, 2), fmtf(e.hum_pct), fmtf(e.alt_m));
+    cli::out->printf("temp=%sF press=%sinHg hum=%s%% alt=%sft\n", fmtf(e.temp_c * 1.8f + 32, 1), fmtf(e.press_hpa * 0.02953f, 3), fmtf(e.hum_pct), fmtf(e.alt_m * 3.28084f, 0));
     return env::address() ? nullptr : "no BMP280/BME280 found (check wiring / SDO address)";
 }
 
 static const char* cmdImu(int, char**) {
     if (!imu::present()) return "BMI323 not found (check CS tied to 3V3, SAO, wiring)";
     const auto& d = imu::data();
-    cli::out->printf("addr=0x%02X chip_id=0x%04X samples=%lu temp=%.1fC\n", imu::address(), imu::chipId(), imu::sampleCount(), d.temp_c);
+    cli::out->printf("addr=0x%02X chip_id=0x%04X samples=%lu temp=%.1fF\n", imu::address(), imu::chipId(), imu::sampleCount(), d.temp_c * 1.8f + 32);
     cli::out->printf("acc g   = %.3f %.3f %.3f\n", d.ax, d.ay, d.az);
     cli::out->printf("gyr dps = %.1f %.1f %.1f\n", d.gx, d.gy, d.gz);
     cli::out->printf("roll=%.1f pitch=%.1f tilt=%.1f motion=%.0fmg tamper=%s\n", d.roll, d.pitch, d.tilt_deg, d.motion_mg, imu::stateName(d.state));
@@ -112,7 +112,7 @@ static const char* cmdGps(int argc, char** argv) {
     if (argc >= 3 && !strcmp(argv[1], "cmd")) { gps::sendPmtk(argv[2]); return nullptr; }
     const auto& g = gps::data();
     cli::out->printf("fix=%d q=%u sats=%u hdop=%s pps=%lu\n", g.fix, g.quality, g.sats, fmtf(g.hdop), (unsigned long)g.pps_count);
-    cli::out->printf("lat=%.6f lon=%.6f alt=%sm speed=%skm/h\n", g.lat, g.lon, fmtf(g.alt_m), fmtf(g.speed_kmh));
+    cli::out->printf("lat=%.6f lon=%.6f alt=%sft speed=%smph\n", g.lat, g.lon, fmtf(g.alt_m * 3.28084f, 0), fmtf(g.speed_kmh * 0.621371f, 1));
     cli::out->printf("utc=%04u-%02u-%02u %02u:%02u:%02u valid=%d\n", g.year, g.month, g.day, g.hour, g.minute, g.second, g.time_valid);
     cli::out->printf("nmea_ok=%lu bad_checksum=%lu last=%lums ago\n", (unsigned long)g.sentences, (unsigned long)g.bad_checksum,
                      g.last_sentence_ms ? millis() - g.last_sentence_ms : 0);
@@ -126,8 +126,8 @@ static const char* cmdRadar(int argc, char** argv) {
     if (argc == 1) {
         for (uint8_t r = 0; r < radar::N; ++r) {
             const auto& d = radar::data(r);
-            cli::out->printf("%c online=%d present=%d state=%u move=%ucm/%u static=%ucm/%u frames=%lu bad=%lu det=%lu\n", 'A' + r, d.online, d.present,
-                             d.state, d.move_cm, d.move_energy, d.static_cm, d.static_energy, (unsigned long)d.frames, (unsigned long)d.bad_frames, (unsigned long)d.detections);
+            cli::out->printf("%c online=%d present=%d state=%u move=%.1fft/%u static=%.1fft/%u frames=%lu bad=%lu det=%lu\n", 'A' + r, d.online, d.present,
+                             d.state, d.move_cm / 30.48f, d.move_energy, d.static_cm / 30.48f, d.static_energy, (unsigned long)d.frames, (unsigned long)d.bad_frames, (unsigned long)d.detections);
         }
         return nullptr;
     }

@@ -41,8 +41,8 @@ effect only after `save` then `reboot`.
 | Parameter | Type | Default | Range | Reboot | Description |
 |---|---|---|---|---|---|
 | `env.poll_ms` | u32 | `1000` | 100 to 60000 |  | BMP280/BME280 read interval |
-| `env.sealevel_hpa` | f32 | `1013.25` | 900 to 1100 |  | Sea-level pressure for altitude calc |
-| `env.temp_offset_c` | f32 | `0` | -20 to 20 |  | Temperature calibration offset |
+| `env.sealevel_inhg` | f32 | `29.92` | 26.5 to 32.5 |  | Sea-level pressure (inHg) for altitude calc |
+| `env.temp_offset_f` | f32 | `0` | -36 to 36 |  | Temperature calibration offset (degF) |
 
 ## IMU (BMI323)
 
@@ -92,7 +92,7 @@ effect only after `save` then `reboot`.
 | `radar.baud` | u32 | `256000` | 9600 to 460800 | yes | UART baud to LD2410 modules (factory 256000) |
 | `radar.enable_mask` | u32 | `7` | 0 to 7 |  | Bitmask of radars that raise detections (A=1 B=2 C=4) |
 | `radar.min_energy` | u32 | `30` | 0 to 100 |  | Minimum target energy to count as detection |
-| `radar.max_cm` | u32 | `600` | 30 to 600 |  | Ignore targets farther than this |
+| `radar.max_ft` | f32 | `20` | 1 to 20 |  | Ignore targets farther than this (feet) |
 | `radar.hold_ms` | u32 | `2000` | 0 to 60000 |  | Keep 'present' this long after last hit |
 | `radar.max_move_gate` | u32 | `8` | 1 to 8 |  | Module max moving gate, 0.75 m each ('radar apply') |
 | `radar.max_static_gate` | u32 | `8` | 1 to 8 |  | Module max stationary gate ('radar apply') |

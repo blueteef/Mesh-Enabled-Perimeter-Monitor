@@ -24,7 +24,7 @@ found or what to check. Lines marked **(seen)** are mistakes we actually made wh
 | Device appears at an unexpected address | Strap pin the other way | Compare with the address table in the [pin map](Pin-Map.md) |
 | Heading wrong direction / mirrored | Magnetometer axes do not match the board orientation | Flip signs: `set mag.sx -1` (or sy/sz), then `magcal` again |
 | Heading drifts or jumps | Uncalibrated, or metal/magnet/wiring nearby | Calibrate in the final enclosure; move the QMC5883L away from the radar 5 V wiring and any magnets |
-| Altitude looks wrong | Pressure altitude depends on weather | Set `env.sealevel_hpa` to the local sea-level pressure |
+| Altitude looks wrong | Pressure altitude depends on weather | Set `env.sealevel_inhg` to the local sea-level pressure |
 
 ## GPS
 
@@ -42,7 +42,7 @@ found or what to check. Lines marked **(seen)** are mistakes we actually made wh
 | `radar` shows `online=0` | No 5 V, no ground, or TX/RX crossed the wrong way | Check +5V and GND at the radar; MCU TX (GP10/12/14) goes to the radar **RX**, MCU RX (GP11/13/15) to the radar **TX** |
 | `online=1` but `bad` frames count up | Wrong baud or noisy wiring | Check `radar.baud` is 256000; keep wires short; common ground |
 | `radar ver a` -> `ERR no ACK` | Command path (MCU TX to radar RX) broken | Check that single wire. Receiving works without it, so a half-working radar is possible |
-| Constant "present" with nobody there | Thresholds too low, or radars disturbing each other, or moving foliage | Raise `radar.min_energy`, lower `radar.max_cm`, adjust module sensitivity then `radar apply` |
+| Constant "present" with nobody there | Thresholds too low, or radars disturbing each other, or moving foliage | Raise `radar.min_energy`, lower `radar.max_ft`, adjust module sensitivity then `radar apply` |
 | Misses stationary people | Stationary threshold too high | Lower `radar.sens_static`, then `radar apply` |
 | A detection always reads exactly 0 cm | Target inside the module's blind zone | Ignore, or raise the minimum distance in the module |
 
