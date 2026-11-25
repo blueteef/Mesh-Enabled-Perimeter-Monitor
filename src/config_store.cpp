@@ -40,6 +40,7 @@ static const Param kParams[] = {
     {"mag.enable",           PType::BOOL,"1",         0,    1,    true,  "Enable QMC5883L"},
     {"mag.poll_hz",          PType::U32, "20",        1,   50,    false, "Mag read rate"},
     {"mag.map",              PType::STR, "x,-y,z",    0,   15,    false, "Compass chip axes pointing forward,right,up (same format as imu.map)"},
+    {"mag.mount_deg",        PType::F32, "0",       -180,  180,   false, "Compass chip rotation on the board: added to heading to line it up with the forward edge"},
     {"mag.declination_deg",  PType::F32, "0",       -30,   30,    false, "Magnetic declination (east positive)"},
     {"mag.sx",               PType::I32, "1",        -1,    1,    false, "Axis sign flip X (mounting)"},
     {"mag.sy",               PType::I32, "1",        -1,    1,    false, "Axis sign flip Y (mounting)"},

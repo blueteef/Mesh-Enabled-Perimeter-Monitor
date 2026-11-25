@@ -94,7 +94,7 @@ void update() {
         float phi = imu::data().roll * 0.0174533f, th = imu::data().pitch * 0.0174533f;
         float bfx = bv[0] * cosf(th) + bv[1] * sinf(th) * sinf(phi) + bv[2] * sinf(th) * cosf(phi);
         float bfy = bv[1] * cosf(phi) - bv[2] * sinf(phi);
-        float h = atan2f(-bfy, bfx) * 57.29578f + cfg::f32("mag.declination_deg");
+        float h = atan2f(-bfy, bfx) * 57.29578f + cfg::f32("mag.mount_deg") + cfg::f32("mag.declination_deg");
         while (h < 0) h += 360.0f;
         while (h >= 360.0f) h -= 360.0f;
         gData.heading_deg = h;

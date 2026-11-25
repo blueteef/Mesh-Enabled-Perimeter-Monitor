@@ -3,7 +3,7 @@
 > **Generated file** - do not edit by hand. Run `python tools/gen_param_docs.py` after changing
 > the table in `src/config_store.cpp`.
 
-50 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
+51 parameters. All of them can be changed live from the CLI (`set <name> <value>`) or the
 web app, and persist across power cycles once you `save`. Parameters marked **reboot** take
 effect only after `save` then `reboot`.
 
@@ -76,6 +76,7 @@ effect only after `save` then `reboot`.
 | `mag.enable` | bool | `1` | - | yes | Enable QMC5883L |
 | `mag.poll_hz` | u32 | `20` | 1 to 50 |  | Mag read rate |
 | `mag.map` | str | `x,-y,z` | up to 15 chars |  | Compass chip axes pointing forward,right,up (same format as imu.map) |
+| `mag.mount_deg` | f32 | `0` | -180 to 180 |  | Compass chip rotation on the board: added to heading to line it up with the forward edge |
 | `mag.declination_deg` | f32 | `0` | -30 to 30 |  | Magnetic declination (east positive) |
 | `mag.sx` | i32 | `1` | -1 to 1 |  | Axis sign flip X (mounting) |
 | `mag.sy` | i32 | `1` | -1 to 1 |  | Axis sign flip Y (mounting) |
